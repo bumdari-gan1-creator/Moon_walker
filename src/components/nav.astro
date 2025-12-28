@@ -1,0 +1,18 @@
+---
+const links = [
+  { href: "/", text: "Dashboard" },
+  { href: "/signin", text: "Sign in" },
+  { href: "/register", text: "register" },
+];
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? pathname === "/" : pathname.startsWith(href);
+---
+
+<nav class="nav">
+  {links.map((l) => (
+    <a href={l.href} class="nav-link">{l.text}</a>
+  ))}
+</nav>
+

@@ -1,0 +1,21 @@
+---
+import "../styles/global.css";
+import Nav from "../components/nav.astro";
+
+const { title = "Assignment" } = Astro.props;
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Nav />
+    <div class="container">
+      <main>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
