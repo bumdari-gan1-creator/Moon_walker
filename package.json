@@ -12,5 +12,8 @@
     "@supabase/supabase-js": "^2.78.0",
     "astro": "^5.16.6",
     "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@astrojs/netlify": "^6.6.3"
   }
 }
