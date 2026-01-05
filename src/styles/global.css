@@ -1,42 +1,40 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* -----------------------------
   Base
 ------------------------------ */
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
 body {
   font-family: Roboto, Arial, sans-serif;
   color: #111827;
   background: #f9fafb;
+  width: 100%;
 }
 
-a { color: inherit; }
-
-/* -----------------------------
-  Layout helpers
------------------------------- */
-.container{
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 0 16px;
+a {
+  color: inherit;
 }
 
 /* -----------------------------
   Header / Nav
 ------------------------------ */
-.site-header{
+.site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid #e5e7eb;
 }
 
-.site-header__inner{
+.site-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -44,24 +42,24 @@ a { color: inherit; }
   padding: 14px 0;
 }
 
-.brand{
+.brand {
   font-weight: 800;
   letter-spacing: -0.02em;
   text-decoration: none;
   padding: 8px 10px;
   border-radius: 12px;
 }
-.brand:hover{
+.brand:hover {
   background: #f3f4f6;
 }
 
-.nav{
+.nav {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.nav-link{
+.nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -74,37 +72,28 @@ a { color: inherit; }
   transition: background 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
-.nav-link:hover{
+.nav-link:hover {
   background: #f3f4f6;
 }
-
 
 /* -----------------------------
   Responsive (mobile)
 ------------------------------ */
-@media (max-width: 640px){
-  .site-header__inner{
+@media (max-width: 640px) {
+  .site-header__inner {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .nav{
+  .nav {
     width: 100%;
     flex-wrap: wrap;
     gap: 8px;
   }
 
-  .nav-link{
+  .nav-link {
     flex: 1 1 auto;
     text-align: center;
     padding: 10px 12px;
   }
 }
-
-/* -----------------------------
-  Main (optional)
------------------------------- */
-main{
-  padding: 28px 0;
-}
-
