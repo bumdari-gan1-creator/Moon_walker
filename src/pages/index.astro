@@ -1,5 +1,7 @@
 ---
 import Layout from "../layouts/basiclayout.astro";
+import Nav from "../components/nav.astro";
+import HomepageFeed from "../components/homepageFeed.astro";
 import { supabase } from "../lib/supabase";
 
 export const prerender = false;
@@ -47,79 +49,5 @@ if (user) {
 ---
 
 <Layout title={user ? "Dashboard" : ""}>
-  <div class="flex justify-between items-center w-full">
-    <h1 class="text-xl font-semibold">Welcome {user?.email}</h1>
-    <form action="/api/auth/signout">
-      <button type="submit">Sign out</button>
-    </form>
-  </div>
-  <div data-target="create_form_container" class="bg-black/60 w-screen h-screen absolute left-0 top-0 flex items-center justify-center" hidden>
-    <form id="create_form" class="bg-white w-100">
-      <div class="w-full flex items-center justify-between bg-green-400 box-border px-4 py-2 text-white mb-4">
-        <p>Create a new blog</p>
-        <p data-toggle="create_form_container" class="text-xl cursor-pointer">X</p>
-      </div>
-      <div class="box-border px-4 w-full">
-        <input 
-          placeholder="Title"
-          name="title"
-          required
-          class="w-full mb-4 border rounded-sm p-2"
-        />
-        <textarea 
-          placeholder="Content"
-          name="content"
-          required
-          rows="15"
-          class="w-full p-2 rounded-sm mb-4 border"
-        />
-        <button class="w-full bg-green-500 mb-4 py-2 text-white" type="submit">Create blog</button>
-      </div>
-    </form>
-  </div>
-  {ownPosts && (
-    ownPosts.length > 0 ? (
-      <div class="flex flex-col w-full">
-        {ownPosts.map(val => {
-          return (
-            <div class="w-full">
-              <p>{val.title}</p>
-              <p>{new Date(val.created_at)}</p>
-            </div>
-          )
-        })}
-      </div>
-    ) : (
-      <div class="w-full h-75 flex items-center justify-center flex-col">
-        <p class="mb-4">Create your first blog now!</p>
-        <button class="bg-green-500 text-white p-2" id="create_now" data-toggle="create_form_container">Create now</button>
-      </div>
-    )
-  )}
-  <script>
-    document.querySelectorAll("[data-toggle]").forEach((btn) => {
-      const ele = btn as HTMLButtonElement;
-      const targetName = ele.dataset.toggle;
-      const form = document.querySelector(`[data-target="${targetName}"]`);
-      if (form) {
-        btn.addEventListener("click", () => {
-          form.toggleAttribute("hidden");
-        });
-      }
-    });
-    const ele = document.getElementById("create_form");
-    if (ele) {
-      const form = ele as HTMLFormElement;
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const res = await fetch("/api/blog/create", {
-          method: "POST",
-          body: new FormData(form)
-        })
-        const resData = await res.json();
-        const { code, data } = resData;
-        alert(data);
-      })
-    }
-  </script>
+  <HomepageFeed />
 </Layout>

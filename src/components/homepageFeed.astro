@@ -1,0 +1,500 @@
+<div class="flex justify-between items-center mb-4">
+    <div class="filter-buttons-container flex gap-4">
+        <button
+            id="my-own-btn"
+            class="filter-btn bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            My own
+        </button>
+        <button
+            id="public-btn"
+            class="filter-btn bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            Public
+        </button>
+    </div>
+    <button
+        id="create-post-btn"
+        class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded transition-colors"
+    >
+        Create Post
+    </button>
+</div>
+
+
+<div
+    id="create-post-modal"
+    class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50"
+>
+    <div
+        class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+    >
+        <div
+            class="w-full flex items-center justify-between bg-purple-500 box-border px-4 py-3 text-white"
+        >
+            <p class="text-lg font-semibold">Create a new post</p>
+            <button
+                id="close-modal-btn"
+                class="text-2xl cursor-pointer hover:text-gray-200 transition-colors"
+                aria-label="Close"
+            >
+                ×
+            </button>
+        </div>
+        <form id="create-post-form" class="box-border px-6 py-4">
+            <div class="mb-4">
+                <label
+                    for="post-title"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                    Title <span class="text-red-500">*</span>
+                </label>
+                <input
+                    id="post-title"
+                    name="title"
+                    type="text"
+                    placeholder="Enter post title"
+                    required
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+            </div>
+            <div class="mb-4">
+                <label
+                    for="post-content"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                    Content <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                    id="post-content"
+                    name="content"
+                    placeholder="Enter post content"
+                    required
+                    rows="12"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                ></textarea>
+            </div>
+            <div id="form-error" class="hidden mb-4 text-red-500 text-sm"></div>
+            <div class="flex gap-3">
+                <button
+                    type="submit"
+                    class="flex-1 bg-purple-500 hover:bg-purple-600 py-2 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Create Post
+                </button>
+                <button
+                    type="button"
+                    id="cancel-btn"
+                    class="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="loading-spinner" class="hidden items-center justify-center py-8">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500">
+    </div>
+</div>
+
+<div id="results-container" class="results-container w-full mt-4"></div>
+
+<script>
+    const loadingSpinner = document.getElementById("loading-spinner");
+    const resultsContainer = document.getElementById("results-container");
+    const myOwnBtn = document.getElementById("my-own-btn");
+    const publicBtn = document.getElementById("public-btn");
+    const createPostBtn = document.getElementById("create-post-btn");
+    const createPostModal = document.getElementById("create-post-modal");
+    const closeModalBtn = document.getElementById("close-modal-btn");
+    const cancelBtn = document.getElementById("cancel-btn");
+    const createPostForm = document.getElementById(
+        "create-post-form"
+    ) as HTMLFormElement;
+    const formError = document.getElementById("form-error");
+
+  
+    let currentOffset = 0;
+    let currentFilter: "my-own" | "public" | null = null;
+    let isLoadingMore = false;
+    let hasMoreData = true;
+
+  
+    function showLoading() {
+        if (loadingSpinner) {
+            loadingSpinner.classList.remove("hidden");
+            loadingSpinner.classList.add("flex");
+        }
+        if (resultsContainer) resultsContainer.innerHTML = "";
+        if (myOwnBtn) (myOwnBtn as HTMLButtonElement).disabled = true;
+        if (publicBtn) (publicBtn as HTMLButtonElement).disabled = true;
+    }
+
+  
+    function hideLoading() {
+        if (loadingSpinner) {
+            loadingSpinner.classList.add("hidden");
+            loadingSpinner.classList.remove("flex");
+        }
+        if (myOwnBtn) (myOwnBtn as HTMLButtonElement).disabled = false;
+        if (publicBtn) (publicBtn as HTMLButtonElement).disabled = false;
+    }
+
+ 
+    function renderResults(data: any[], append: boolean = false) {
+        if (!resultsContainer) return;
+
+        if (!data || data.length === 0) {
+            if (!append) {
+                resultsContainer.innerHTML = `
+          <div class="w-full h-75 flex items-center justify-center flex-col py-8">
+            <p class="text-gray-500">No results found</p>
+          </div>
+        `;
+            }
+            hasMoreData = false;
+            return;
+        }
+
+       
+        if (data.length < 10) {
+            hasMoreData = false;
+        }
+
+        const postsHTML = data
+            .map(
+                (item: any) => `
+      <div class="w-full border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+        ${item.title ? `<p class="text-lg font-semibold mb-2">${item.title}</p>` : ""}
+        ${item.content ? `<p class="text-gray-600 mb-2 line-clamp-3">${item.content}</p>` : ""}
+        ${item.created_at ? `<p class="text-sm text-gray-400">${new Date(item.created_at).toLocaleString()}</p>` : ""}
+        ${item.author_email ? `<p class="text-xs text-gray-500 mt-1">Author: ${item.author_email}</p>` : ""}
+        ${item.user_id ? `<p class="text-xs text-gray-500 mt-1">User ID: ${item.user_id}</p>` : ""}
+      </div>
+    `
+            )
+            .join("");
+
+        if (append) {
+       
+            const existingContent = resultsContainer.innerHTML;
+            const postsContainer = existingContent.includes("flex flex-col")
+                ? existingContent.replace("</div>", postsHTML + "</div>")
+                : `<div class="flex flex-col w-full gap-4 overflow-y-auto">${postsHTML}</div>`;
+            resultsContainer.innerHTML = postsContainer;
+        } else {
+        
+            resultsContainer.innerHTML = `
+        <div class="flex flex-col w-full gap-4 overflow-y-auto">
+          ${postsHTML}
+        </div>
+      `;
+        }
+    }
+
+ 
+    async function fetchMyOwnPosts(
+        offset: number = 0,
+        append: boolean = false
+    ) {
+        try {
+            if (!append) {
+                showLoading();
+            } else {
+                isLoadingMore = true;
+            }
+
+            const response = await fetch(`/api/blog/my-own?offset=${offset}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("My own data:", responseData);
+
+         
+            const results = responseData.code === "0" && Array.isArray(responseData.data) 
+                ? responseData.data 
+                : [];
+            renderResults(results, append);
+
+            currentOffset = offset + results.length;
+        } catch (error) {
+            console.error("Error fetching my own posts:", error);
+            if (!append && resultsContainer) {
+                resultsContainer.innerHTML = `
+          <div class="w-full flex items-center justify-center flex-col py-8">
+            <p class="text-red-500">Error loading data. Please try again.</p>
+          </div>
+        `;
+            }
+        } finally {
+            if (!append) {
+                hideLoading();
+             
+                (myOwnBtn as HTMLButtonElement).disabled = true;
+                if (publicBtn)
+                    (publicBtn as HTMLButtonElement).disabled = false;
+            } else {
+                isLoadingMore = false;
+            }
+        }
+    }
+
+    if (myOwnBtn) {
+        myOwnBtn.addEventListener("click", async () => {
+            (myOwnBtn as HTMLButtonElement).disabled = true;
+            if (publicBtn) (publicBtn as HTMLButtonElement).disabled = false;
+
+            currentFilter = "my-own";
+            currentOffset = 0;
+            hasMoreData = true;
+            await fetchMyOwnPosts(0, false);
+        });
+      
+        (myOwnBtn as HTMLButtonElement).click();
+    }
+
+    async function fetchPublicPosts(
+        offset: number = 0,
+        append: boolean = false
+    ) {
+        try {
+            if (!append) {
+                showLoading();
+            } else {
+                isLoadingMore = true;
+            }
+
+            const response = await fetch(`/api/blog/public?offset=${offset}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Public data:", responseData);
+
+       
+            const results = responseData.code === "0" && Array.isArray(responseData.data) 
+                ? responseData.data 
+                : [];
+            renderResults(results, append);
+
+    
+            currentOffset = offset + results.length;
+        } catch (error) {
+            console.error("Error fetching public posts:", error);
+            if (!append && resultsContainer) {
+                resultsContainer.innerHTML = `
+          <div class="w-full flex items-center justify-center flex-col py-8">
+            <p class="text-red-500">Error loading data. Please try again.</p>
+          </div>
+        `;
+            }
+        } finally {
+            if (!append) {
+                hideLoading();
+               
+                if (publicBtn) (publicBtn as HTMLButtonElement).disabled = true;
+                if (myOwnBtn) (myOwnBtn as HTMLButtonElement).disabled = false;
+            } else {
+                isLoadingMore = false;
+            }
+        }
+    }
+
+
+    if (publicBtn) {
+        publicBtn.addEventListener("click", async () => {
+            (publicBtn as HTMLButtonElement).disabled = true;
+            if (myOwnBtn) (myOwnBtn as HTMLButtonElement).disabled = false;
+
+            currentFilter = "public";
+            currentOffset = 0;
+            hasMoreData = true;
+            await fetchPublicPosts(0, false);
+        });
+    }
+
+  
+    let scrollTimeout: number | null = null;
+    window.addEventListener("scroll", () => {
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+
+        scrollTimeout = window.setTimeout(() => {
+   
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const documentHeight = document.documentElement.scrollHeight;
+
+            if (
+                !isLoadingMore &&
+                hasMoreData &&
+                scrollPosition >= documentHeight - 200
+            ) {
+                if (currentFilter === "public") {
+                    fetchPublicPosts(currentOffset, true);
+                } else if (currentFilter === "my-own") {
+                    fetchMyOwnPosts(currentOffset, true);
+                }
+            }
+        }, 100);
+    });
+
+
+    if (createPostBtn && createPostModal) {
+        createPostBtn.addEventListener("click", () => {
+            createPostModal.classList.remove("hidden");
+            createPostModal.classList.add("flex");
+        });
+    }
+
+
+    if (closeModalBtn && createPostModal) {
+        closeModalBtn.addEventListener("click", () => {
+            createPostModal.classList.add("hidden");
+            createPostModal.classList.remove("flex");
+            if (createPostForm) {
+                createPostForm.reset();
+            }
+            if (formError) {
+                formError.classList.add("hidden");
+                formError.textContent = "";
+            }
+        });
+    }
+
+   
+    if (cancelBtn && createPostModal) {
+        cancelBtn.addEventListener("click", () => {
+            createPostModal.classList.add("hidden");
+            createPostModal.classList.remove("flex");
+            if (createPostForm) {
+                createPostForm.reset();
+            }
+            if (formError) {
+                formError.classList.add("hidden");
+                formError.textContent = "";
+            }
+        });
+    }
+
+    if (createPostModal) {
+        createPostModal.addEventListener("click", (e) => {
+            if (e.target === createPostModal) {
+                createPostModal.classList.add("hidden");
+                createPostModal.classList.remove("flex");
+                if (createPostForm) {
+                    createPostForm.reset();
+                }
+                if (formError) {
+                    formError.classList.add("hidden");
+                    formError.textContent = "";
+                }
+            }
+        });
+    }
+
+    if (createPostForm) {
+        createPostForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const titleInput = document.getElementById(
+                "post-title"
+            ) as HTMLInputElement;
+            const contentTextarea = document.getElementById(
+                "post-content"
+            ) as HTMLTextAreaElement;
+
+            const title = titleInput?.value.trim();
+            const content = contentTextarea?.value.trim();
+
+            if (!title || !content) {
+                if (formError) {
+                    formError.textContent =
+                        "Please fill in all required fields.";
+                    formError.classList.remove("hidden");
+                }
+                return;
+            }
+
+            if (formError) {
+                formError.classList.add("hidden");
+                formError.textContent = "";
+            }
+
+      
+            const submitBtn = createPostForm.querySelector(
+                'button[type="submit"]'
+            ) as HTMLButtonElement;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Creating...";
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append("title", title);
+                formData.append("content", content);
+
+                const response = await fetch("/api/blog/create", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.code !== "0") {
+                    throw new Error(result.data || "Failed to create post");
+                }
+
+                
+                if (createPostModal) {
+                    createPostModal.classList.add("hidden");
+                    createPostModal.classList.remove("flex");
+                }
+                if (createPostForm) {
+                    createPostForm.reset();
+                }
+
+          
+                alert("Post created successfully!");
+
+           
+                if (myOwnBtn && !(myOwnBtn as HTMLButtonElement).disabled) {
+                    myOwnBtn.click();
+                }
+            } catch (error) {
+                console.error("Error creating post:", error);
+                if (formError) {
+                    formError.textContent =
+                        error instanceof Error
+                            ? error.message
+                            : "Failed to create post. Please try again.";
+                    formError.classList.remove("hidden");
+                }
+            } finally {
+            
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Create Post";
+                }
+            }
+        });
+    }
+</script>

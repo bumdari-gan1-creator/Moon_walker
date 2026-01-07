@@ -1,31 +1,54 @@
 ---
 import { supabase } from "../lib/supabase";
-const res = await supabase.auth.getUser();
-const user = res.data;
-let links = [
-  {
-    href: "/",
-    text: "Dashboard",
-  },
-];
-if (!user) {
-  links = [
-    { href: "/", text: "Dashboard" },
-    { href: "/signin", text: "Sign in" },
-    { href: "/register", text: "register" },
-  ];
+
+let links: any[] = [];
+let isAuthenticated = false;
+
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+
+if (accessToken && refreshToken) {
+    let session;
+    try {
+        session = await supabase.auth.setSession({
+            refresh_token: refreshToken.value,
+            access_token: accessToken.value,
+        });
+        if (!session.error) {
+            const user = session.data.user;
+            if (user) {
+                links = [{ href: "/", text: "Dashboard" }];
+                isAuthenticated = true;
+            }
+        }
+    } catch (error) {
+        console.log(error);
+    }
 }
 const pathname = Astro.url.pathname;
 const isActive = (href: string) =>
-  href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 ---
 
-<nav class="nav">
-  {
-    links.map((l) => (
-      <a href={l.href} class="nav-link">
-        {l.text}
-      </a>
-    ))
-  }
+<nav class="nav px-5 box-border relative mb-2">
+    {
+        isAuthenticated && (
+            <div>
+                {links.map((l) => (
+                    <a href={l.href} class="nav-link">
+                        {l.text}
+                    </a>
+                ))}
+            </div>
+        )
+    }
+    {
+        isAuthenticated && (
+            <form action="/api/auth/signout" method="post" class="absolute right-5 top-1/2 -translate-y-1/2">
+                <button type="submit" class="nav-link">
+                    Sign out
+                </button>
+            </form>
+        )
+    }
 </nav>

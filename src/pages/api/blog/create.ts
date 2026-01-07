@@ -1,47 +1,58 @@
 import type { APIRoute } from "astro";
 import { supabase } from "../../../lib/supabase";
+import { authenticateUser, createErrorResponse } from "../../../lib/authMiddleware";
+import { randomUUID } from "crypto";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
-  const formData = await request.formData();
+export const POST: APIRoute = async (context) => {
+  const authResult = await authenticateUser(context);
+
+  if (!authResult.success) {
+    return createErrorResponse(authResult.error);
+  }
+
+  const user = authResult.user!;
+
+  const formData = await context.request.formData();
   const title = formData.get("title");
-  const content = formData.get("content");
-  if (!title || !content) {
-    return new Response(
-      JSON.stringify({
-        code: "1402",
-        data: "Invalid data",
-      })
-    );
+  const content_md = formData.get("content");
+
+  if (!title || !content_md) {
+    return createErrorResponse({
+      code: "1402",
+      message: "Invalid data",
+      status: 400,
+    });
   }
-  const res = await supabase.auth.getUser();
-  const user = res.data.user;
-  if (!user) {
-    return new Response(
-      JSON.stringify({
-        code: "1401",
-        data: "Not authenticated",
-      })
-    );
-  }
+
+  const slug = randomUUID();
+
   const insertRes = await supabase.from("posts").insert({
-    title,
-    content,
-    user_id: user.id,
+    title: title.toString(),
+    content_md: content_md.toString(),
+    author_id: user.id,
+    slug: slug,
   });
+
   if (insertRes.error) {
-    return new Response(
-      JSON.stringify({
-        code: "1500",
-        data: insertRes.error.message,
-      })
-    );
+    return createErrorResponse({
+      code: "1500",
+      message: insertRes.error.message,
+      status: 500,
+    });
   }
+
   return new Response(
     JSON.stringify({
       code: "0",
       data: "Success",
-    })
+    }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
   );
 };
