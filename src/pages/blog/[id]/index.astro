@@ -1,0 +1,228 @@
+---
+import Layout from "../../../layouts/basiclayout.astro";
+import { createClient } from "@supabase/supabase-js";
+
+export const prerender = false;
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+);
+
+const id = Astro.params.id;
+
+const { data: post, error: postErr } = await supabase
+  .from("posts")
+  .select("id, title, content_md, created_at, author_id")
+  .eq("id", id)
+  .single();
+
+const { data: comments, error: comErr } = await supabase
+  .from("comments")
+  .select("id, body, created_at")
+  .eq("post_id", id)
+  .order("created_at", { ascending: true });
+
+const access = Astro.cookies.get("sb-access-token")?.value;
+const refresh = Astro.cookies.get("sb-refresh-token")?.value;
+
+let isLoggedIn = false;
+let userId: string | null = null;
+
+if (access && refresh) {
+  const { data } = await supabase.auth.setSession({
+    access_token: access,
+    refresh_token: refresh,
+  });
+  isLoggedIn = !!data.user;
+  userId = data.user?.id ?? null;
+}
+
+const canEdit = !!userId && !!post && post.author_id === userId;
+---
+
+<Layout title="Post">
+  <div class="min-h-[calc(100vh-200px)] flex items-start justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl w-full space-y-8">
+      <div>
+        <a
+          href="../"
+          class="text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors duration-200"
+        >
+          ← Back to blog
+        </a>
+      </div>
+
+      {postErr ? (
+        <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">Post not found</h1>
+          <p class="text-sm text-red-600 font-semibold">{postErr.message}</p>
+        </div>
+      ) : (
+        <>
+          <!-- Post card -->
+          <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">{post.title}</h1>
+            <p class="text-sm text-gray-500">
+              {new Date(post.created_at).toLocaleString()}
+            </p>
+
+              {canEdit && (
+              <div class="mt-4 flex gap-3">
+                <a
+                  href={`/blog/${post.id}/edit`}
+                  class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                  Edit
+                </a>
+
+                <button
+                  id="deletePostBtn"
+                  data-postid={post.id}
+                  type="button"
+                  class="border border-red-300 text-red-700 hover:bg-red-50 font-semibold py-2 px-4 rounded-lg"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+
+            <div class="mt-6">
+              <h2 class="text-sm font-semibold text-gray-700 mb-2">Content</h2>
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <pre class="whitespace-pre-wrap text-sm leading-6 text-gray-800">
+{post.content_md}</pre
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Comments card -->
+          <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div class="flex items-center justify-between">
+              <h2 class="text-2xl font-bold text-gray-900">Comments</h2>
+              <span class="text-sm text-gray-500">{(comments ?? []).length}</span>
+            </div>
+
+            {comErr && (
+              <p class="mt-4 text-sm text-red-600 font-semibold">{comErr.message}</p>
+            )}
+
+            <div class="mt-6 space-y-4">
+              {(comments ?? []).map((c) => (
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <p class="text-sm text-gray-800">{c.body}</p>
+                  <p class="mt-2 text-xs text-gray-500">
+                    {new Date(c.created_at).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+
+              {(comments ?? []).length === 0 && (
+                <p class="text-sm text-gray-500">No comments yet.</p>
+              )}
+            </div>
+
+            <!-- Add comment -->
+            <div class="mt-8">
+              {isLoggedIn ? (
+                <>
+                  <h3 class="text-sm font-semibold text-gray-700 mb-2">Add a comment</h3>
+
+                  <form id="commentForm" data-postid={post.id} class="space-y-3">
+                    <textarea
+                      name="body"
+                      rows="3"
+                      required
+                      placeholder="Write your comment..."
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
+                    ></textarea>
+
+                    <button
+                      type="submit"
+                      class="w-full bg-linear-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+                    >
+                      Post comment
+                    </button>
+                  </form>
+
+                  <script>
+                    (function () {
+                      const form = document.getElementById("commentForm");
+                      if (!(form instanceof HTMLFormElement)) {
+                        console.log("commentForm not found");
+                        return;
+                      }
+
+                      form.addEventListener("submit", async (e) => {
+                        e.preventDefault();
+
+                        const postId = form.dataset.postid;
+                        const textarea = form.querySelector('textarea[name="body"]');
+
+                        if (!(textarea instanceof HTMLTextAreaElement)) {
+                          alert("Textarea not found");
+                          return;
+                        }
+
+                        const body = textarea.value.trim();
+                        if (!postId || !body) return;
+
+                        const r = await fetch(`/api/blog/${postId}/comments`, {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ body }),
+                        });
+
+                        const j = await r.json().catch(() => ({}));
+                        if (r.ok) location.reload();
+                        else alert(j.error || "Error");
+                      });
+                    })();
+                  </script>
+                </>
+              ) : (
+                <p class="text-sm text-gray-600">
+                  Please{" "}
+                  <a
+                    href="/signin"
+                    class="font-semibold text-purple-600 hover:text-purple-700 transition-colors duration-200"
+                  >
+                    sign in
+                  </a>{" "}
+                  to write a comment.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <p class="text-center text-xs text-gray-500">
+            By commenting, you agree to be respectful.
+          </p>
+
+            {canEdit && (
+            <script>
+              (function () {
+                const btn = document.getElementById("deletePostBtn");
+                if (!(btn instanceof HTMLButtonElement)) return;
+
+                btn.addEventListener("click", async () => {
+                  const postId = btn.dataset.postid;
+                  if (!postId) return;
+
+                  if (!confirm("Delete this post?")) return;
+
+                  const r = await fetch(`/api/blog/${postId}`, { method: "DELETE" });
+                  const j = await r.json().catch(() => ({}));
+
+                  if (r.ok) location.href = "/blog";
+                  else alert(j.error || "Error");
+                });
+              })();
+            </script>
+          )}
+        </>
+      )}
+    </div>
+  </div>
+</Layout>

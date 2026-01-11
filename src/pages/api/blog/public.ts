@@ -20,7 +20,7 @@ export const GET: APIRoute = async (context) => {
 
     const { data: posts, error } = await supabase
       .from("posts")
-      .select("created_at, title, author_id")
+      .select("id, created_at, title, author_id, content_md")
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -33,8 +33,10 @@ export const GET: APIRoute = async (context) => {
     }
 
     const result = (posts || []).map((post) => ({
+      id: post.id, 
       created_at: post.created_at,
       title: post.title,
+      content_md: post.content_md,
       author_email: null,
     }));
 
