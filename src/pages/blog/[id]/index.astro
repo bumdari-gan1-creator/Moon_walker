@@ -128,7 +128,7 @@ const canEdit = !!userId && !!post && post.author_id === userId;
             <div class="mt-8">
               {isLoggedIn ? (
                 <>
-                  <h3 class="text-sm font-semibold text-gray-700 mb-2">Add a comment</h3>
+                  
 
                   <form id="commentForm" data-postid={post.id} class="space-y-3">
                     <textarea
@@ -143,7 +143,7 @@ const canEdit = !!userId && !!post && post.author_id === userId;
                       type="submit"
                       class="w-full bg-linear-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
                     >
-                      Post comment
+                      Add comment
                     </button>
                   </form>
 

@@ -30,12 +30,12 @@ const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 ---
 
-<nav class="nav px-5 box-border relative mb-2">
+<nav class="w-full px-5 relative mb-2 h-24 bg-purple-500 flex items-center justify-between">
     {
         isAuthenticated && (
             <div>
                 {links.map((l) => (
-                    <a href={l.href} class="nav-link">
+                    <a href={l.href} class="!text-white font-semibold text-left hover:text-white/80">
                         {l.text}
                     </a>
                 ))}
@@ -44,8 +44,8 @@ const isActive = (href: string) =>
     }
     {
         isAuthenticated && (
-            <form action="/api/auth/signout" method="post" class="absolute right-5 top-1/2 -translate-y-1/2">
-                <button type="submit" class="nav-link">
+            <form action="/api/auth/signout" method="post">
+                <button type="submit" class="text-white font-semibold text-right hover:text-white/80">
                     Sign out
                 </button>
             </form>
