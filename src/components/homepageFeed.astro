@@ -167,11 +167,11 @@
         const postsHTML = data
         .map(
         (item) => `
-        <a href="/blog/${item.id}" class="block w-full border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-        ${item.title ? `<p class="text-lg font-semibold mb-2">${item.title}</p>` : ""}
+        <a href="/blog/${item.id}" class="block w-full bg-white border-gray rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+        ${item.title ? `<p class="text-lg font-semibold mb-2 text-gray-900">${item.title}</p>` : ""}
         ${(item.content_md || item.content)
-            ? `<p class="text-gray-600 mb-2 line-clamp-3">${(item.content_md || item.content)}</p>`: ""}
-        ${item.created_at? `<p class="text-sm text-gray-400">${new Date(item.created_at).toLocaleString()}</p>`: ""}
+            ? `<p class="text-gray mb-2 line-clamp-3">${(item.content_md || item.content)}</p>`: ""}
+        ${item.created_at? `<p class="text-sm text-gray-500">${new Date(item.created_at).toLocaleString()}</p>`: ""}
         ${item.author_email ? `<p class="text-xs text-gray-500 mt-1">Author: ${item.author_email}</p>` : ""}
         </a>
         `
