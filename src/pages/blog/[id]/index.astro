@@ -19,9 +19,35 @@ const { data: post, error: postErr } = await supabase
 
 const { data: comments, error: comErr } = await supabase
   .from("comments")
-  .select("id, body, created_at")
+  .select("id, body, created_at, author_id")
   .eq("post_id", id)
   .order("created_at", { ascending: true });
+
+const authorIds = Array.from(new Set((comments ?? []).map((c) => c.author_id)));
+let postUsername = "user";
+
+if (post?.author_id) {
+  const { data: p } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", post.author_id)
+    .maybeSingle();
+
+  postUsername = p?.username ?? "user";
+}
+
+let usernameMap: Record<string, string> = {};
+
+if (authorIds.length > 0) {
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .in("id", authorIds);
+
+  (profs ?? []).forEach((p) => {
+    usernameMap[p.id] = p.username ?? "user";
+    });
+  }
 
 const access = Astro.cookies.get("sb-access-token")?.value;
 const refresh = Astro.cookies.get("sb-refresh-token")?.value;
@@ -63,6 +89,9 @@ const canEdit = !!userId && !!post && post.author_id === userId;
           <!-- Post card -->
           <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
             <h1 class="text-4xl font-bold text-gray-900 mb-2">{post.title}</h1>
+            <p class="text-sm font-semibold text-gray-500 mb-1">
+              {postUsername}
+            </p>
             <p class="text-xs text-gray-500">
               {new Date(post.created_at).toLocaleString()}
             </p>
@@ -112,6 +141,10 @@ const canEdit = !!userId && !!post && post.author_id === userId;
             <div class="mt-6 space-y-4">
               {(comments ?? []).map((c) => (
                 <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <p class="text-xs font-semibold text-gray-400">
+                      {usernameMap[c.author_id] ?? "user"}
+                  </p>
+                  
                   <p class="text-sm text-gray-800">{c.body}</p>
                   <p class="mt-2 text-xs text-gray-500">
                     {new Date(c.created_at).toLocaleString()}

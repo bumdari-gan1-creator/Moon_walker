@@ -17,7 +17,10 @@ if (accessToken && refreshToken) {
         if (!session.error) {
             const user = session.data.user;
             if (user) {
-                links = [{ href: "/", text: "Dashboard" }];
+                links = [
+                    { href: "/", text: "Dashboard" }, 
+                    { href: "/account", text: "Account" },
+                ];
                 isAuthenticated = true;
             }
         }
@@ -30,10 +33,10 @@ const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 ---
 
-<nav class="w-full px-5 relative mb-2 h-24 bg-purple-500 flex items-center justify-between">
+<nav class="w-full px-5 relative mb-2 h-16 bg-purple-500 flex items-center justify-between">
     {
         isAuthenticated && (
-            <div>
+            <div class="flex gap-6">
                 {links.map((l) => (
                     <a href={l.href} class="!text-white font-semibold text-left hover:text-white/80">
                         {l.text}
